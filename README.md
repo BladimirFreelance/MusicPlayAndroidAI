@@ -22,3 +22,6 @@ Unit and instrumentation tests can be run with:
 ```
 
 This will execute the static analysis and JUnit tests defined in the project.
+
+## License
+This project is licensed under the [MIT License](LICENSE).
