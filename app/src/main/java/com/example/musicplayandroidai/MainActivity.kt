@@ -18,12 +18,14 @@ import androidx.compose.ui.unit.dp
 import com.example.musicplayandroidai.player.PlayerManager
 import com.example.musicplayandroidai.player.rememberFilePicker
 import com.example.musicplayandroidai.ui.theme.MusicPlayAndroidAITheme
+import com.example.musicplayandroidai.AppLogger
 
 class MainActivity : ComponentActivity() {
     private lateinit var playerManager: PlayerManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppLogger.d("App started")
         enableEdgeToEdge()
         playerManager = PlayerManager(applicationContext)
         setContent {
@@ -71,20 +73,31 @@ fun MusicPlayerScreen(playerManager: PlayerManager) {
         ) {
             Text(text = "Musicplay")
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { filePicker.pickAudio() }) {
+            Button(onClick = {
+                AppLogger.d("Select file button clicked")
+                filePicker.pickAudio()
+            }) {
                 Text("Выбрать аудиофайл")
             }
             Spacer(modifier = Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = {
+                    AppLogger.d("Play clicked")
                     if (selectedUri != null) {
                         playerManager.play()
                     } else {
                         errorMessage = "Файл не выбран"
+                        AppLogger.e("Playback error: file not selected")
                     }
                 }) { Text("Play") }
-                Button(onClick = { playerManager.pause() }) { Text("Pause") }
-                Button(onClick = { playerManager.stop() }) { Text("Stop") }
+                Button(onClick = {
+                    AppLogger.d("Pause clicked")
+                    playerManager.pause()
+                }) { Text("Pause") }
+                Button(onClick = {
+                    AppLogger.d("Stop clicked")
+                    playerManager.stop()
+                }) { Text("Stop") }
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text(text = fileName ?: "Файл не выбран")
