@@ -1,3 +1,5 @@
+package com.example.musicplayandroidai
+
 object AppLogger {
     private const val TAG = "MusicplayLog"
 
