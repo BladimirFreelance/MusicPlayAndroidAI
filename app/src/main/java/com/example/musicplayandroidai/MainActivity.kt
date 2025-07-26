@@ -37,6 +37,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
+        // Keep player instance when returning from file picker
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
         playerManager.release()
     }
 }
