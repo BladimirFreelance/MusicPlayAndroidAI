@@ -12,13 +12,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -28,10 +33,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.example.musicplayandroidai.ui.theme.MusicPlayAndroidAITheme
 
 @Composable
 fun GlassDock(
@@ -43,7 +51,11 @@ fun GlassDock(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val dockShape = RoundedCornerShape(24.dp)
-    val surfaceColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+    val surfaceColor = if (isSystemInDarkTheme()) {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.62f)
+    } else {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)
+    }
     val borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
     val activeColor = MaterialTheme.colorScheme.primary
     val inactiveColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
@@ -52,77 +64,88 @@ fun GlassDock(
         modifier = modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .padding(16.dp),
-        contentAlignment = Alignment.BottomStart
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        AnimatedVisibility(
-            visible = isExpanded,
-            enter = slideInHorizontally(
-                animationSpec = androidx.compose.animation.core.tween(durationMillis = 220),
-                initialOffsetX = { it }
-            ) + fadeIn(animationSpec = androidx.compose.animation.core.tween(durationMillis = 220)),
-            exit = slideOutHorizontally(
-                animationSpec = androidx.compose.animation.core.tween(durationMillis = 220),
-                targetOffsetX = { it }
-            ) + fadeOut(animationSpec = androidx.compose.animation.core.tween(durationMillis = 220))
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.BottomCenter
         ) {
-            Surface(
-                shape = dockShape,
-                color = surfaceColor,
-                border = BorderStroke(1.dp, borderColor),
-                tonalElevation = 0.dp,
-                shadowElevation = 8.dp
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = slideInHorizontally(
+                    animationSpec = androidx.compose.animation.core.tween(durationMillis = 240),
+                    initialOffsetX = { it }
+                ) + fadeIn(animationSpec = androidx.compose.animation.core.tween(durationMillis = 220)),
+                exit = slideOutHorizontally(
+                    animationSpec = androidx.compose.animation.core.tween(durationMillis = 240),
+                    targetOffsetX = { it }
+                ) + fadeOut(animationSpec = androidx.compose.animation.core.tween(durationMillis = 200))
             ) {
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 12.dp, vertical = 10.dp)
-                        .height(56.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                Surface(
+                    shape = dockShape,
+                    color = surfaceColor,
+                    border = BorderStroke(1.dp, borderColor),
+                    tonalElevation = 0.dp,
+                    shadowElevation = 6.dp,
+                    modifier = Modifier.widthIn(max = 420.dp)
                 ) {
-                    DockHandleButton(symbol = ">", onClick = onToggleExpanded)
-                    bottomBarDestinations.forEach { destination ->
-                        val isSelected = destination.route == currentRoute
-                        DockTab(
-                            label = destination.label,
-                            isSelected = isSelected,
-                            activeColor = activeColor,
-                            inactiveColor = inactiveColor,
-                            onClick = {
-                                if (currentRoute != destination.route) {
-                                    navController.navigate(destination.route) {
-                                        launchSingleTop = true
-                                        popUpTo(AppDestination.Library.route) { saveState = true }
-                                        restoreState = true
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                            .height(56.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        DockHandleButton(symbol = ">", onClick = onToggleExpanded, size = 48.dp)
+                        bottomBarDestinations.forEach { destination ->
+                            val isSelected = destination.route == currentRoute
+                            DockTab(
+                                label = destination.label,
+                                isSelected = isSelected,
+                                activeColor = activeColor,
+                                inactiveColor = inactiveColor,
+                                onClick = {
+                                    if (currentRoute != destination.route) {
+                                        navController.navigate(destination.route) {
+                                            launchSingleTop = true
+                                            popUpTo(AppDestination.Library.route) { saveState = true }
+                                            restoreState = true
+                                        }
                                     }
                                 }
-                            }
-                        )
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
                     }
-                    Spacer(modifier = Modifier.width(4.dp))
                 }
             }
         }
 
-        AnimatedVisibility(
-            visible = !isExpanded,
-            enter = slideInHorizontally(
-                animationSpec = androidx.compose.animation.core.tween(durationMillis = 220),
-                initialOffsetX = { -it / 2 }
-            ) + fadeIn(animationSpec = androidx.compose.animation.core.tween(durationMillis = 220)),
-            exit = slideOutHorizontally(
-                animationSpec = androidx.compose.animation.core.tween(durationMillis = 220),
-                targetOffsetX = { -it / 2 }
-            ) + fadeOut(animationSpec = androidx.compose.animation.core.tween(durationMillis = 220))
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.BottomStart
         ) {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = surfaceColor,
-                border = BorderStroke(1.dp, borderColor),
-                tonalElevation = 0.dp,
-                shadowElevation = 8.dp
+            AnimatedVisibility(
+                visible = !isExpanded,
+                enter = slideInHorizontally(
+                    animationSpec = androidx.compose.animation.core.tween(durationMillis = 220),
+                    initialOffsetX = { -it / 2 }
+                ) + fadeIn(animationSpec = androidx.compose.animation.core.tween(durationMillis = 220)),
+                exit = slideOutHorizontally(
+                    animationSpec = androidx.compose.animation.core.tween(durationMillis = 220),
+                    targetOffsetX = { -it / 2 }
+                ) + fadeOut(animationSpec = androidx.compose.animation.core.tween(durationMillis = 200))
             ) {
-                DockHandleButton(symbol = "<", onClick = onToggleExpanded)
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = surfaceColor,
+                    border = BorderStroke(1.dp, borderColor),
+                    tonalElevation = 0.dp,
+                    shadowElevation = 6.dp
+                ) {
+                    DockHandleButton(symbol = "<", onClick = onToggleExpanded, size = 52.dp)
+                }
             }
         }
     }
@@ -136,8 +159,8 @@ private fun DockTab(
     inactiveColor: Color,
     onClick: () -> Unit
 ) {
-    val highlightColor = if (isSelected) activeColor.copy(alpha = 0.2f) else Color.Transparent
-    val textColor = if (isSelected) activeColor else inactiveColor
+    val highlightColor = if (isSelected) activeColor.copy(alpha = 0.18f) else Color.Transparent
+    val textColor = if (isSelected) activeColor.copy(alpha = 0.95f) else inactiveColor
     Box(
         modifier = Modifier
             .background(color = highlightColor, shape = RoundedCornerShape(16.dp))
@@ -171,6 +194,32 @@ private fun DockHandleButton(
             text = symbol,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun GlassDockExpandedPreview() {
+    val navController = rememberNavController()
+    MusicPlayAndroidAITheme {
+        GlassDock(
+            navController = navController,
+            isExpanded = true,
+            onToggleExpanded = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun GlassDockCollapsedPreview() {
+    val navController = rememberNavController()
+    MusicPlayAndroidAITheme {
+        GlassDock(
+            navController = navController,
+            isExpanded = false,
+            onToggleExpanded = {}
         )
     }
 }
