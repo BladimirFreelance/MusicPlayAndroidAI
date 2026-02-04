@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
@@ -95,33 +96,37 @@ fun GlassDock(
                         .wrapContentWidth()
                 ) {
                     Box(modifier = Modifier.clip(dockShape)) {
-                        Row(
+                        Box(
                             modifier = Modifier
-                                .padding(horizontal = 12.dp, vertical = 10.dp)
-                                .height(56.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                .height(64.dp)
+                                .padding(horizontal = 12.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            DockHandleButton(symbol = ">", onClick = onToggleExpanded, size = 48.dp)
-                            bottomBarDestinations.forEach { destination ->
-                                val isSelected = destination.route == currentRoute
-                                DockTab(
-                                    label = destination.label,
-                                    isSelected = isSelected,
-                                    activeColor = activeColor,
-                                    inactiveColor = inactiveColor,
-                                    onClick = {
-                                        if (currentRoute != destination.route) {
-                                            navController.navigate(destination.route) {
-                                                launchSingleTop = true
-                                                popUpTo(AppDestination.Library.route) { saveState = true }
-                                                restoreState = true
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                DockHandleButton(symbol = ">", onClick = onToggleExpanded, size = 48.dp)
+                                bottomBarDestinations.forEach { destination ->
+                                    val isSelected = destination.route == currentRoute
+                                    DockTab(
+                                        label = destination.label,
+                                        isSelected = isSelected,
+                                        activeColor = activeColor,
+                                        inactiveColor = inactiveColor,
+                                        onClick = {
+                                            if (currentRoute != destination.route) {
+                                                navController.navigate(destination.route) {
+                                                    launchSingleTop = true
+                                                    popUpTo(AppDestination.Library.route) { saveState = true }
+                                                    restoreState = true
+                                                }
                                             }
                                         }
-                                    }
-                                )
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(4.dp))
                             }
-                            Spacer(modifier = Modifier.width(4.dp))
                         }
                     }
                 }
@@ -167,16 +172,23 @@ private fun DockTab(
     inactiveColor: Color,
     onClick: () -> Unit
 ) {
-    val highlightColor = if (isSelected) activeColor.copy(alpha = 0.18f) else Color.Transparent
     val textColor = if (isSelected) activeColor.copy(alpha = 0.95f) else inactiveColor
+    val pillColor = activeColor.copy(alpha = 0.18f)
     Box(
         modifier = Modifier
-            .background(color = highlightColor, shape = RoundedCornerShape(16.dp))
+            .height(40.dp)
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .height(40.dp),
+            .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
+        if (isSelected) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color = pillColor, shape = RoundedCornerShape(16.dp))
+            )
+        }
         Text(
             text = label,
             color = textColor,
