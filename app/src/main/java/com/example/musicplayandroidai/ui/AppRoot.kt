@@ -20,13 +20,12 @@ fun AppRoot() {
 
     Box(modifier = Modifier.fillMaxSize()) {
         AppNavHost(navController = navController)
-        Box(modifier = Modifier.align(Alignment.BottomCenter)) {
-            GlassDock(
-                navController = navController,
-                isExpanded = isDockExpanded.value,
-                onToggleExpanded = { isDockExpanded.value = !isDockExpanded.value }
-            )
-        }
+        GlassDock(
+            navController = navController,
+            isExpanded = isDockExpanded.value,
+            onToggleExpanded = { isDockExpanded.value = !isDockExpanded.value },
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
