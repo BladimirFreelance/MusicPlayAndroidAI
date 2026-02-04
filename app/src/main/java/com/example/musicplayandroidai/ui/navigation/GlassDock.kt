@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -88,35 +90,39 @@ fun GlassDock(
                     border = BorderStroke(1.dp, borderColor),
                     tonalElevation = 0.dp,
                     shadowElevation = 6.dp,
-                    modifier = Modifier.widthIn(max = 420.dp)
+                    modifier = Modifier
+                        .widthIn(max = 420.dp)
+                        .wrapContentWidth()
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp, vertical = 10.dp)
-                            .height(56.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        DockHandleButton(symbol = ">", onClick = onToggleExpanded, size = 48.dp)
-                        bottomBarDestinations.forEach { destination ->
-                            val isSelected = destination.route == currentRoute
-                            DockTab(
-                                label = destination.label,
-                                isSelected = isSelected,
-                                activeColor = activeColor,
-                                inactiveColor = inactiveColor,
-                                onClick = {
-                                    if (currentRoute != destination.route) {
-                                        navController.navigate(destination.route) {
-                                            launchSingleTop = true
-                                            popUpTo(AppDestination.Library.route) { saveState = true }
-                                            restoreState = true
+                    Box(modifier = Modifier.clip(dockShape)) {
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 12.dp, vertical = 10.dp)
+                                .height(56.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            DockHandleButton(symbol = ">", onClick = onToggleExpanded, size = 48.dp)
+                            bottomBarDestinations.forEach { destination ->
+                                val isSelected = destination.route == currentRoute
+                                DockTab(
+                                    label = destination.label,
+                                    isSelected = isSelected,
+                                    activeColor = activeColor,
+                                    inactiveColor = inactiveColor,
+                                    onClick = {
+                                        if (currentRoute != destination.route) {
+                                            navController.navigate(destination.route) {
+                                                launchSingleTop = true
+                                                popUpTo(AppDestination.Library.route) { saveState = true }
+                                                restoreState = true
+                                            }
                                         }
                                     }
-                                }
-                            )
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
                         }
-                        Spacer(modifier = Modifier.width(4.dp))
                     }
                 }
             }
@@ -144,7 +150,9 @@ fun GlassDock(
                     tonalElevation = 0.dp,
                     shadowElevation = 6.dp
                 ) {
-                    DockHandleButton(symbol = "<", onClick = onToggleExpanded, size = 52.dp)
+                    Box(modifier = Modifier.clip(RoundedCornerShape(20.dp))) {
+                        DockHandleButton(symbol = "<", onClick = onToggleExpanded, size = 52.dp)
+                    }
                 }
             }
         }
