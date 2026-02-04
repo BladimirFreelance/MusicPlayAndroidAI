@@ -5,10 +5,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.example.musicplayandroidai.ui.navigation.AppNavHost
 import com.example.musicplayandroidai.ui.navigation.GlassDock
+import com.example.musicplayandroidai.ui.theme.MusicPlayAndroidAITheme
 
 @Composable
 fun AppRoot() {
@@ -17,10 +20,20 @@ fun AppRoot() {
 
     Box(modifier = Modifier.fillMaxSize()) {
         AppNavHost(navController = navController)
-        GlassDock(
-            navController = navController,
-            isExpanded = isDockExpanded.value,
-            onToggleExpanded = { isDockExpanded.value = !isDockExpanded.value }
-        )
+        Box(modifier = Modifier.align(Alignment.BottomCenter)) {
+            GlassDock(
+                navController = navController,
+                isExpanded = isDockExpanded.value,
+                onToggleExpanded = { isDockExpanded.value = !isDockExpanded.value }
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun AppRootPreview() {
+    MusicPlayAndroidAITheme {
+        AppRoot()
     }
 }
