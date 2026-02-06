@@ -18,5 +18,5 @@ val GlassBorderLight = Color(0xFFFFFFFF).copy(alpha = 0.35f)
 val GlassBorderDark = Color(0xFFFFFFFF).copy(alpha = 0.15f)
 
 // Цвета для свечения (Glow)
-val GlowLight = Color(0xFF6650a4)
+val GlowLight = Color(0xFF7A2780)
 val GlowDark = Color(0xFF45E521)

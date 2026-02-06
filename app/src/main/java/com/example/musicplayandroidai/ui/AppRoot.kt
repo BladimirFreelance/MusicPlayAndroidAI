@@ -48,14 +48,16 @@ fun AppRootContent(
     playerManager: PlayerManager? = null,
     modifier: Modifier = Modifier
 ) {
-    val isDockExpanded = rememberSaveable { mutableStateOf(false) }
+    // Устанавливаем начальное состояние развернутым (true)
+    // Благодаря rememberSaveable, оно будет сбрасываться в true ПРИ КАЖДОМ ХОЛОДНОМ ЗАПУСКЕ приложения.
+    // При повороте экрана состояние будет сохраняться.
+    val isDockExpanded = rememberSaveable { mutableStateOf(true) }
+    
     val isDarkTheme = isSystemInDarkTheme()
     
-    // Получаем текущий маршрут для управления отображением кнопки "Назад"
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     
-    // Показываем кнопку назад, если мы не на главных экранах (Library, Playlists, Settings)
     val showBackButton = currentRoute != AppDestination.Library.route &&
                          currentRoute != AppDestination.Playlists.route &&
                          currentRoute != AppDestination.Settings.route &&
@@ -68,7 +70,6 @@ fun AppRootContent(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        // 1. Фоновое изображение
         Image(
             painter = painterResource(id = backgroundResId),
             contentDescription = null,
@@ -76,12 +77,10 @@ fun AppRootContent(
             contentScale = ContentScale.Crop
         )
 
-        // 2. Контент приложения
         if (playerManager != null) {
             AppNavHost(navController = navController, playerManager = playerManager)
         }
 
-        // 3. Кнопка "Назад" (показывается только на внутренних экранах)
         if (showBackButton) {
             IconButton(
                 onClick = {
@@ -101,7 +100,6 @@ fun AppRootContent(
             }
         }
 
-        // 4. Невидимый слой для закрытия панели по клику вне неё
         if (isDockExpanded.value) {
             Box(
                 modifier = Modifier
@@ -115,7 +113,6 @@ fun AppRootContent(
             )
         }
 
-        // 5. Стеклянная навигационная панель (Overlay)
         GlassDock(
             navController = navController,
             isExpanded = isDockExpanded.value,

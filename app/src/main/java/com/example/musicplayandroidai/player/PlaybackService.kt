@@ -28,6 +28,7 @@ class PlaybackService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
 
+        // Настраиваем аудио-атрибуты для музыки.
         val audioAttributes = AudioAttributes.Builder()
             .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
             .setUsage(C.USAGE_MEDIA)
@@ -35,16 +36,22 @@ class PlaybackService : MediaSessionService() {
 
         val settingsManager = SettingsManager.getInstance(this)
         
+        // Создаем ExoPlayer с ВКЛЮЧЕННОЙ обработкой фокуса по умолчанию.
+        // Это обеспечит:
+        // 1. Паузу при входящих и исходящих звонках.
+        // 2. Паузу, когда другое приложение (например, YouTube) запрашивает фокус.
+        // 3. Приглушение громкости при уведомлениях (Ducking).
         exoPlayer = ExoPlayer.Builder(this)
-            .setAudioAttributes(audioAttributes, settingsManager.isAudioFocusEnabled.value)
-            .setHandleAudioBecomingNoisy(true)
+            .setAudioAttributes(audioAttributes, true) // Всегда true для корректной работы системы
+            .setHandleAudioBecomingNoisy(true) // Пауза при отключении наушников
             .build()
 
-        // Слушаем изменения настроек и обновляем поведение плеера
+        // Слушаем изменения в настройках, если в будущем захотим менять тип фокуса
         settingsManager.isAudioFocusEnabled
             .onEach { isEnabled ->
-                AppLogger.d("Audio focus management changed to: $isEnabled")
-                exoPlayer.setAudioAttributes(audioAttributes, isEnabled)
+                AppLogger.d("Audio focus preference: $isEnabled. Service currently ensures focus for calls.")
+                // В данной реализации мы оставляем фокус включенным на уровне плеера, 
+                // так как это критично для звонков.
             }
             .launchIn(serviceScope)
 
@@ -60,7 +67,7 @@ class PlaybackService : MediaSessionService() {
             .setSessionActivity(sessionActivityPendingIntent)
             .build()
 
-        AppLogger.d("PlaybackService created with MediaSession")
+        AppLogger.d("PlaybackService started with system Audio Focus handling.")
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
