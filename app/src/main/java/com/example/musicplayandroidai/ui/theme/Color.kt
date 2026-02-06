@@ -11,7 +11,12 @@ val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
 // Стеклянные цвета (Glass Morphism)
-val GlassWhite = Color(0xFF838383).copy(alpha = 0.10f)
-val GlassBlack = Color(0xFF838383).copy(alpha = 0.10f)
-val GlassBorderLight = Color(0xFFFFFFFF).copy(alpha = 0.15f)
-val GlassBorderDark = Color(0xFF000000).copy(alpha = 0.20f)
+val GlassWhite = Color(0xFF888888).copy(alpha = 0.30f)
+val GlassBlack = Color(0xFF888888).copy(alpha = 0.30f)
+
+val GlassBorderLight = Color(0xFFFFFFFF).copy(alpha = 0.35f)
+val GlassBorderDark = Color(0xFFFFFFFF).copy(alpha = 0.15f)
+
+// Цвета для свечения (Glow)
+val GlowLight = Color(0xFF6650a4)
+val GlowDark = Color(0xFF45E521)

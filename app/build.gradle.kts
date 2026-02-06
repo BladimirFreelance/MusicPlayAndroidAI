@@ -51,7 +51,14 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.runtime.saveable)
-    implementation(libs.exoplayer)
+    
+    // Media3 dependencies
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.session)
+
+    // DataStore
+    implementation(libs.androidx.datastore.preferences)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

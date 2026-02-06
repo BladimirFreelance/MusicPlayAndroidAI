@@ -1,62 +1,126 @@
 package com.example.musicplayandroidai.ui
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.musicplayandroidai.R
+import com.example.musicplayandroidai.player.PlayerManager
+import com.example.musicplayandroidai.ui.navigation.AppDestination
 import com.example.musicplayandroidai.ui.navigation.AppNavHost
 import com.example.musicplayandroidai.ui.navigation.GlassDock
-import com.example.musicplayandroidai.ui.theme.MusicPlayAndroidAITheme
 
 @Composable
-fun AppRoot() {
+fun AppRoot(playerManager: PlayerManager) {
     val navController = rememberNavController()
-    val isDockExpanded = rememberSaveable { mutableStateOf(true) }
-    val isDarkTheme = isSystemInDarkTheme()
+    AppRootContent(
+        navController = navController,
+        playerManager = playerManager
+    )
+}
 
-    // Выбираем фоновое изображение в зависимости от темы
+@Composable
+fun AppRootContent(
+    navController: NavHostController,
+    playerManager: PlayerManager? = null,
+    modifier: Modifier = Modifier
+) {
+    val isDockExpanded = rememberSaveable { mutableStateOf(false) }
+    val isDarkTheme = isSystemInDarkTheme()
+    
+    // Получаем текущий маршрут для управления отображением кнопки "Назад"
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    
+    // Показываем кнопку назад, если мы не на главных экранах (Library, Playlists, Settings)
+    val showBackButton = currentRoute != AppDestination.Library.route &&
+                         currentRoute != AppDestination.Playlists.route &&
+                         currentRoute != AppDestination.Settings.route &&
+                         currentRoute != null
+
     val backgroundResId = if (isDarkTheme) {
         R.drawable.dark_tm
     } else {
         R.drawable.light_tm
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Фоновое изображение на весь экран
+    Box(modifier = modifier.fillMaxSize()) {
+        // 1. Фоновое изображение
         Image(
             painter = painterResource(id = backgroundResId),
-            contentDescription = null, // Декоративный элемент
+            contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop // Заполняем весь экран, обрезая лишнее
+            contentScale = ContentScale.Crop
         )
 
-        // Контент приложения
-        AppNavHost(navController = navController)
+        // 2. Контент приложения
+        if (playerManager != null) {
+            AppNavHost(navController = navController, playerManager = playerManager)
+        }
 
-        // Стеклянная навигационная панель
+        // 3. Кнопка "Назад" (показывается только на внутренних экранах)
+        if (showBackButton) {
+            IconButton(
+                onClick = {
+                    navController.popBackStack()
+                },
+                modifier = Modifier
+                    .statusBarsPadding()
+                    .padding(16.dp)
+                    .align(Alignment.TopStart)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    tint = if (isDarkTheme) Color.White else Color.Black,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        }
+
+        // 4. Невидимый слой для закрытия панели по клику вне неё
+        if (isDockExpanded.value) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) {
+                        isDockExpanded.value = false
+                    }
+            )
+        }
+
+        // 5. Стеклянная навигационная панель (Overlay)
         GlassDock(
             navController = navController,
             isExpanded = isDockExpanded.value,
             onToggleExpanded = { isDockExpanded.value = !isDockExpanded.value },
             modifier = Modifier.align(Alignment.BottomCenter)
         )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun AppRootPreview() {
-    MusicPlayAndroidAITheme {
-        AppRoot()
     }
 }
