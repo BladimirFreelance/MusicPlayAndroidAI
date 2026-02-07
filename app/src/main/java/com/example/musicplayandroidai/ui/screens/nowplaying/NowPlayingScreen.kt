@@ -46,8 +46,13 @@ import com.example.musicplayandroidai.ui.theme.GlowLight
 import com.example.musicplayandroidai.ui.theme.MusicPlayAndroidAITheme
 import java.util.Locale
 
+/**
+ * Экран "Сейчас играет" (Full Screen Player).
+ * Собирает данные из PlayerManager и передает их в UI-контент.
+ */
 @Composable
 fun NowPlayingScreen(playerManager: PlayerManager) {
+    // Подписываемся на состояния плеера
     val currentTrack by playerManager.currentTrack
     val isPlaying by playerManager.isPlaying
     val position by playerManager.currentPosition
@@ -71,6 +76,9 @@ fun NowPlayingScreen(playerManager: PlayerManager) {
     )
 }
 
+/**
+ * Основной UI контент экрана плеера.
+ */
 @Composable
 fun NowPlayingContent(
     currentTrack: Track?,
@@ -86,6 +94,7 @@ fun NowPlayingContent(
     onToggleShuffle: () -> Unit,
     onToggleRepeat: () -> Unit
 ) {
+    // Настройки стилей в зависимости от темы
     val isDark = isSystemInDarkTheme()
     val glowColor = if (isDark) GlowDark else GlowLight
     val glassBg = if (isDark) GlassBlack.copy(alpha = 0.25f) else GlassWhite.copy(alpha = 0.4f)
@@ -99,7 +108,7 @@ fun NowPlayingContent(
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Верхняя панель (меню)
+        // --- ВЕРХНЯЯ ЧАСТЬ (Header) ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -107,19 +116,12 @@ fun NowPlayingContent(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            //Три точки
-//            IconButton(onClick = { /* TODO: Menu */ }) {
-//                Icon(
-//                    imageVector = Icons.Default.MoreHoriz,
-//                    contentDescription = "Menu",
-//                    tint = Color.White.copy(alpha = 0.7f)
-//                )
-//            }
+            // Место для дополнительных кнопок (меню, избранное и т.д.)
         }
 
         Spacer(modifier = Modifier.weight(0.1f))
 
-        // 1. Обложка
+        // --- 1. ОБЛОЖКА АЛЬБОМА ---
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
@@ -150,7 +152,7 @@ fun NowPlayingContent(
 
         Spacer(modifier = Modifier.weight(0.2f))
 
-        // 2. Инфо о треке
+        // --- 2. ИНФОРМАЦИЯ О ТРЕКЕ (Название и Исполнитель) ---
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = currentTrack?.title ?: "No Track Playing",
@@ -176,7 +178,7 @@ fun NowPlayingContent(
 
         Spacer(modifier = Modifier.weight(0.3f))
 
-        // 3. Стеклянная панель управления
+        // --- 3. ПАНЕЛЬ УПРАВЛЕНИЯ (Slider и Кнопки) ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -186,7 +188,7 @@ fun NowPlayingContent(
                 .padding(horizontal = 20.dp, vertical = 24.dp)
         ) {
             Column {
-                // Прогресс
+                // Ползунок прогресса (Seek Bar)
                 Column {
                     Slider(
                         value = position.toFloat(),
@@ -199,6 +201,7 @@ fun NowPlayingContent(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
+                    // Время (прошло / осталось)
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -210,7 +213,7 @@ fun NowPlayingContent(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Кнопки плеера
+                // Кнопки воспроизведения
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -220,7 +223,7 @@ fun NowPlayingContent(
                         Icon(Icons.Default.SkipPrevious, null, tint = Color.White, modifier = Modifier.size(36.dp))
                     }
 
-                    // Play/Pause в круге с легким свечением
+                    // Кнопка Play/Pause с круглым фоном
                     Surface(
                         onClick = onTogglePlayPause,
                         modifier = Modifier.size(72.dp),
@@ -247,7 +250,7 @@ fun NowPlayingContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 4. Нижняя панель (Shuffle и Repeat)
+        // --- 4. НИЖНЯЯ ПАНЕЛЬ (Shuffle и Repeat) ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -260,7 +263,7 @@ fun NowPlayingContent(
                 modifier = Modifier.fillMaxSize(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Кнопка перемешать (Shuffle)
+                // Перемешивание
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -284,10 +287,10 @@ fun NowPlayingContent(
                     }
                 }
 
-                // Разделитель
+                // Вертикальный разделитель
                 Box(modifier = Modifier.width(1.dp).fillMaxHeight(0.4f).background(glassBorder))
 
-                // Кнопка повтора (Repeat)
+                // Повтор
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -318,6 +321,9 @@ fun NowPlayingContent(
     }
 }
 
+/**
+ * Преобразование миллисекунд в формат mm:ss
+ */
 private fun formatTime(ms: Long): String {
     val totalSec = ms / 1000
     val min = totalSec / 60

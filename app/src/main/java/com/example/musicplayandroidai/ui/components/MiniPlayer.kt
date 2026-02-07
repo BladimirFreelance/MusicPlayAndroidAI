@@ -27,25 +27,37 @@ import com.example.musicplayandroidai.R
 import com.example.musicplayandroidai.player.PlayerManager
 import com.example.musicplayandroidai.ui.theme.GlassBlack
 import com.example.musicplayandroidai.ui.theme.GlassWhite
+import java.util.Locale
 
+/**
+ * Компактный плеер (MiniPlayer), отображаемый над нижней навигацией.
+ */
 @Composable
 fun MiniPlayer(
     playerManager: PlayerManager,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Подписываемся на состояния плеера
     val currentTrack by playerManager.currentTrack
     val isPlaying by playerManager.isPlaying
+    val position by playerManager.currentPosition
+    val duration by playerManager.duration
+
+    // Настройки стилей "стекла"
     val glassColor = if (isSystemInDarkTheme()) GlassBlack else GlassWhite
     val borderColor = if (isSystemInDarkTheme()) Color.White.copy(alpha = 0.1f) else Color.White.copy(alpha = 0.2f)
 
     if (currentTrack == null) return
 
+    // Расчет прогресса для полоски (от 0.0 до 1.0)
+    val progress = if (duration > 0) position.toFloat() / duration.toFloat() else 0f
+
     Box(
         modifier = modifier
             .padding(horizontal = 12.dp)
             .fillMaxWidth()
-            .height(100.dp)
+            .height(110.dp) // Немного увеличим высоту для текстов времени
             .clip(RoundedCornerShape(24.dp))
             .background(glassColor)
             .border(1.dp, borderColor, RoundedCornerShape(24.dp))
@@ -53,8 +65,11 @@ fun MiniPlayer(
             .padding(12.dp)
     ) {
         Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Обложка
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // --- ОБЛОЖКА ТРЕКА ---
                 AsyncImage(
                     model = currentTrack?.albumArtUri,
                     contentDescription = null,
@@ -67,7 +82,7 @@ fun MiniPlayer(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // Текст
+                // --- ИНФОРМАЦИЯ (Название и автор) ---
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = currentTrack?.title ?: "",
@@ -88,7 +103,7 @@ fun MiniPlayer(
                     )
                 }
 
-                // Управление
+                // --- КНОПКИ УПРАВЛЕНИЯ ---
                 IconButton(onClick = { playerManager.togglePlayPause() }) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
@@ -109,28 +124,51 @@ fun MiniPlayer(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Прогресс-бар (заглушка)
+            // --- ПРОГРЕСС-БАР ---
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(2.dp)
-                    .background(Color.White.copy(alpha = 0.2f))
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(1.dp))
+                    .background(Color.White.copy(alpha = 0.15f))
             ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.4f) // Пример прогресса
+                        .fillMaxWidth(progress.coerceIn(0f, 1f)) // Реальный прогресс
                         .fillMaxHeight()
-                        .background(Color(0xFF00E5FF)) // Цвет как на макете
+                        .background(Color(0xFF00E5FF)) // Бирюзовый цвет индикатора
                 )
             }
             
+            // --- ВРЕМЯ (Текущее / Всего) ---
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("1:18", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
-                Text("3:40", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
+                Text(
+                    text = formatTime(position),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.5f)
+                )
+                Text(
+                    text = formatTime(duration),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.5f)
+                )
             }
         }
     }
+}
+
+/**
+ * Функция для форматирования времени в mm:ss
+ */
+private fun formatTime(ms: Long): String {
+    if (ms < 0) return "0:00"
+    val totalSeconds = ms / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return String.format(Locale.getDefault(), "%d:%02d", minutes, seconds)
 }

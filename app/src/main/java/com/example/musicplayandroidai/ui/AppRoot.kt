@@ -25,19 +25,22 @@ import com.example.musicplayandroidai.ui.navigation.AppNavHost
 import com.example.musicplayandroidai.ui.navigation.GlassDock
 import com.example.musicplayandroidai.ui.theme.MusicPlayAndroidAITheme
 
+/**
+ * Основная точка входа в UI приложения.
+ */
 @Composable
 fun AppRoot(playerManager: PlayerManager) {
     val navController = rememberNavController()
-    AppRootContent(
-        navController = navController,
-        playerManager = playerManager
-    )
+    AppRootContent(navController = navController, playerManager = playerManager)
 }
 
+/**
+ * Главный контейнер приложения.
+ */
 @Composable
 fun AppRootContent(
     navController: NavHostController,
-    playerManager: PlayerManager? = null,
+    playerManager: PlayerManager,
     modifier: Modifier = Modifier
 ) {
     val isDarkTheme = isSystemInDarkTheme()
@@ -47,25 +50,21 @@ fun AppRootContent(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     
-    // Явный список маршрутов, где должен отображаться GlassDock и MiniPlayer
+    // Список главных экранов (где есть нижняя панель)
     val mainRoutes = listOf(
         AppDestination.Library.route,
         AppDestination.Playlists.route,
         AppDestination.Settings.route
     )
     
-    // Проверяем, на главном ли мы экране или маршрут еще не определен (null)
+    // Проверка, на основном ли мы экране
     val isMainScreen = currentRoute == null || currentRoute in mainRoutes
     val isNowPlaying = currentRoute == AppDestination.NowPlaying.route
 
-    val backgroundResId = if (isDarkTheme) {
-        R.drawable.dark_tm
-    } else {
-        R.drawable.light_tm
-    }
+    val backgroundResId = if (isDarkTheme) R.drawable.dark_tm else R.drawable.light_tm
 
     Box(modifier = modifier.fillMaxSize()) {
-        // 1. Фон
+        // 1. ФОН
         Image(
             painter = painterResource(id = backgroundResId),
             contentDescription = null,
@@ -73,16 +72,16 @@ fun AppRootContent(
             contentScale = ContentScale.Crop
         )
 
-        // 2. Основной контент
+        // 2. КОНТЕНТ (Экраны навигации)
         Column(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.weight(1f)) {
-                if (playerManager != null) {
-                    AppNavHost(navController = navController, playerManager = playerManager)
-                }
+                AppNavHost(navController = navController, playerManager = playerManager)
             }
             
-            // Скрываем MiniPlayer и GlassDock, если мы на экране NowPlaying или в ландшафте
-            if (!isLandscape && !isNowPlaying && isMainScreen) {
+            // 3. НИЖНЯЯ ПАНЕЛЬ УПРАВЛЕНИЯ
+            if (!isLandscape && !isNowPlaying) {
+                val currentTrack by playerManager.currentTrack
+                
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -90,25 +89,29 @@ fun AppRootContent(
                         .padding(bottom = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    if (playerManager != null && playerManager.currentTrack.value != null) {
+                    // Мини-плеер показываем везде, кроме экрана плеера NowPlaying
+                    if (currentTrack != null) {
                         MiniPlayer(
                             playerManager = playerManager,
-                            onClick = {
-                                navController.navigate(AppDestination.NowPlaying.route)
-                            }
+                            onClick = { navController.navigate(AppDestination.NowPlaying.route) }
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                     }
                     
-                    GlassDock(
-                        navController = navController,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    // Док-панель (кнопки Library/Playlists) показываем только на главных экранах
+                    if (isMainScreen) {
+                        GlassDock(
+                            navController = navController,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }
         
-        // Кнопка назад - показываем только если мы НЕ на главном экране
+        // 4. КНОПКА "НАЗАД"
+        // Она должна быть видна на ВСЕХ экранах, кроме главных (Library, Playlists, Settings)
+        // Включая экран NowPlayingScreen
         if (!isMainScreen && currentRoute != null) {
             IconButton(
                 onClick = { navController.popBackStack() },
