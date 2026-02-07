@@ -1,7 +1,5 @@
 package com.example.musicplayandroidai.ui.navigation
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,98 +15,99 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.musicplayandroidai.ui.theme.GlassBlack
-import com.example.musicplayandroidai.ui.theme.GlassBorderDark
-import com.example.musicplayandroidai.ui.theme.GlassBorderLight
-import com.example.musicplayandroidai.ui.theme.GlassWhite
+import com.example.musicplayandroidai.ui.theme.*
+
+@Immutable
+data class GlassDockColors(
+    val surfaceColor: Color,
+    val borderColor: Color,
+    val iconActiveColor: Color,
+    val iconInactiveColor: Color,
+    val pillActiveColor: Color
+)
+
+@Composable
+fun getGlassDockColors(isDark: Boolean = isSystemInDarkTheme()): GlassDockColors {
+    return if (isDark) {
+        GlassDockColors(
+            surfaceColor = Color.Black.copy(alpha = 0.4f), // Более прозрачный
+            borderColor = Color.White.copy(alpha = 0.1f),
+            iconActiveColor = Color(0xFF00E5FF), // Бирюзовый акцент как на макете
+            iconInactiveColor = Color.White.copy(alpha = 0.6f),
+            pillActiveColor = Color.White.copy(alpha = 0.05f)
+        )
+    } else {
+        GlassDockColors(
+            surfaceColor = Color.White.copy(alpha = 0.4f),
+            borderColor = Color.Black.copy(alpha = 0.1f),
+            iconActiveColor = Color(0xFF00B8D4),
+            iconInactiveColor = Color.Black.copy(alpha = 0.6f),
+            pillActiveColor = Color.Black.copy(alpha = 0.05f)
+        )
+    }
+}
 
 @Composable
 fun GlassDock(
     navController: NavHostController,
-    isExpanded: Boolean,
-    onToggleExpanded: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val isDark = isSystemInDarkTheme()
 
-    val surfaceColor = if (isDark) GlassBlack else GlassWhite
-    val borderColor = if (isDark) GlassBorderDark else GlassBorderLight
+    GlassDockContent(
+        currentRoute = currentRoute,
+        onNavigate = { destination ->
+            navController.navigate(destination.route) {
+                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        },
+        modifier = modifier
+    )
+}
+
+@Composable
+fun GlassDockContent(
+    currentRoute: String?,
+    onNavigate: (AppDestination) -> Unit,
+    modifier: Modifier = Modifier,
+    colors: GlassDockColors = getGlassDockColors()
+) {
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val dockShape = RoundedCornerShape(24.dp)
 
     Box(
         modifier = modifier
-            .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 16.dp, vertical = 20.dp),
-        contentAlignment = Alignment.BottomCenter
+            .padding(horizontal = 12.dp)
+            .height(80.dp)
+            .clip(dockShape)
+            .background(colors.surfaceColor)
+            .border(1.dp, colors.borderColor, dockShape),
+        contentAlignment = Alignment.Center
     ) {
-        // Развернутая панель
-        AnimatedVisibility(
-            visible = isExpanded,
-            enter = fadeIn(tween(200)) + expandHorizontally(tween(260)),
-            exit = fadeOut(tween(200)) + shrinkHorizontally(tween(260))
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Box(
-                modifier = Modifier
-                    .clip(dockShape)
-                    .background(surfaceColor)
-                    .border(1.dp, borderColor, dockShape)
-                    .wrapContentWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .height(72.dp) // Увеличили высоту для иконок + текста
-                        .padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    DockHandleButton(symbol = ">", onClick = onToggleExpanded, size = 44.dp)
-                    
-                    bottomBarDestinations.forEach { destination ->
-                        val isSelected = destination.route == currentRoute
-                        DockTab(
-                            label = destination.label,
-                            icon = destination.icon,
-                            isSelected = isSelected,
-                            activeColor = MaterialTheme.colorScheme.primary,
-                            inactiveColor = if (isDark) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f),
-                            onClick = {
-                                if (!isSelected) {
-                                    navController.navigate(destination.route) {
-                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-        }
-
-        // Свернутая ручка
-        AnimatedVisibility(
-            visible = !isExpanded,
-            enter = fadeIn(tween(220)) + slideInHorizontally(tween(220)) { -it },
-            exit = fadeOut(tween(200)) + slideOutHorizontally(tween(220)) { -it },
-            modifier = Modifier.align(Alignment.BottomStart)
-        ) {
-            val handleShape = RoundedCornerShape(20.dp)
-            Box(
-                modifier = Modifier
-                    .clip(handleShape)
-                    .background(surfaceColor)
-                    .border(1.dp, borderColor, handleShape)
-            ) {
-                DockHandleButton(symbol = "<", onClick = onToggleExpanded, size = 52.dp)
+            bottomBarDestinations.forEach { destination ->
+                DockTab(
+                    label = destination.label,
+                    icon = destination.icon,
+                    isSelected = destination.route == currentRoute,
+                    activeColor = colors.iconActiveColor,
+                    inactiveColor = colors.iconInactiveColor,
+                    onClick = { onNavigate(destination) }
+                )
             }
         }
     }
@@ -123,57 +122,28 @@ private fun DockTab(
     inactiveColor: Color,
     onClick: () -> Unit
 ) {
-    val pillColor = activeColor.copy(alpha = 0.15f)
     val contentColor = if (isSelected) activeColor else inactiveColor
     
-    Box(
+    Column(
         modifier = Modifier
-            .padding(horizontal = 2.dp)
-            .height(56.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (isSelected) pillColor else Color.Transparent)
+            .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp),
-        contentAlignment = Alignment.Center
+            .padding(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                modifier = Modifier.size(24.dp),
-                tint = contentColor
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = label,
-                color = contentColor,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
-            )
-        }
-    }
-}
-
-@Composable
-private fun DockHandleButton(
-    symbol: String,
-    onClick: () -> Unit,
-    size: Dp
-) {
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(RoundedCornerShape(size / 2))
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            modifier = Modifier.size(26.dp),
+            tint = contentColor
+        )
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = symbol,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface
+            text = label,
+            color = contentColor,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
         )
     }
 }

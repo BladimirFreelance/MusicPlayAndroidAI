@@ -1,27 +1,17 @@
 package com.example.musicplayandroidai.ui
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -29,9 +19,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.musicplayandroidai.R
 import com.example.musicplayandroidai.player.PlayerManager
+import com.example.musicplayandroidai.ui.components.MiniPlayer
 import com.example.musicplayandroidai.ui.navigation.AppDestination
 import com.example.musicplayandroidai.ui.navigation.AppNavHost
 import com.example.musicplayandroidai.ui.navigation.GlassDock
+import com.example.musicplayandroidai.ui.theme.MusicPlayAndroidAITheme
 
 @Composable
 fun AppRoot(playerManager: PlayerManager) {
@@ -48,20 +40,23 @@ fun AppRootContent(
     playerManager: PlayerManager? = null,
     modifier: Modifier = Modifier
 ) {
-    // Устанавливаем начальное состояние развернутым (true)
-    // Благодаря rememberSaveable, оно будет сбрасываться в true ПРИ КАЖДОМ ХОЛОДНОМ ЗАПУСКЕ приложения.
-    // При повороте экрана состояние будет сохраняться.
-    val isDockExpanded = rememberSaveable { mutableStateOf(true) }
-    
     val isDarkTheme = isSystemInDarkTheme()
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     
-    val showBackButton = currentRoute != AppDestination.Library.route &&
-                         currentRoute != AppDestination.Playlists.route &&
-                         currentRoute != AppDestination.Settings.route &&
-                         currentRoute != null
+    // Явный список маршрутов, где должен отображаться GlassDock и MiniPlayer
+    val mainRoutes = listOf(
+        AppDestination.Library.route,
+        AppDestination.Playlists.route,
+        AppDestination.Settings.route
+    )
+    
+    // Проверяем, на главном ли мы экране или маршрут еще не определен (null)
+    val isMainScreen = currentRoute == null || currentRoute in mainRoutes
+    val isNowPlaying = currentRoute == AppDestination.NowPlaying.route
 
     val backgroundResId = if (isDarkTheme) {
         R.drawable.dark_tm
@@ -70,6 +65,7 @@ fun AppRootContent(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
+        // 1. Фон
         Image(
             painter = painterResource(id = backgroundResId),
             contentDescription = null,
@@ -77,47 +73,57 @@ fun AppRootContent(
             contentScale = ContentScale.Crop
         )
 
-        if (playerManager != null) {
-            AppNavHost(navController = navController, playerManager = playerManager)
+        // 2. Основной контент
+        Column(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.weight(1f)) {
+                if (playerManager != null) {
+                    AppNavHost(navController = navController, playerManager = playerManager)
+                }
+            }
+            
+            // Скрываем MiniPlayer и GlassDock, если мы на экране NowPlaying или в ландшафте
+            if (!isLandscape && !isNowPlaying && isMainScreen) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(bottom = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    if (playerManager != null && playerManager.currentTrack.value != null) {
+                        MiniPlayer(
+                            playerManager = playerManager,
+                            onClick = {
+                                navController.navigate(AppDestination.NowPlaying.route)
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    
+                    GlassDock(
+                        navController = navController,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
         }
-
-        if (showBackButton) {
+        
+        // Кнопка назад - показываем только если мы НЕ на главном экране
+        if (!isMainScreen && currentRoute != null) {
             IconButton(
-                onClick = {
-                    navController.popBackStack()
-                },
+                onClick = { navController.popBackStack() },
                 modifier = Modifier
                     .statusBarsPadding()
                     .padding(16.dp)
                     .align(Alignment.TopStart)
             ) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = if (isDarkTheme) Color.White else Color.Black,
+                    tint = Color.White,
                     modifier = Modifier.size(32.dp)
                 )
             }
         }
-
-        if (isDockExpanded.value) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) {
-                        isDockExpanded.value = false
-                    }
-            )
-        }
-
-        GlassDock(
-            navController = navController,
-            isExpanded = isDockExpanded.value,
-            onToggleExpanded = { isDockExpanded.value = !isDockExpanded.value },
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
     }
 }

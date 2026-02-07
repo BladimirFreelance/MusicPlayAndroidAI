@@ -4,6 +4,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.net.Uri
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -31,12 +33,25 @@ class PlayerManager(private val context: Context) {
     private val repository = TracksRepository(context)
     private val scope = CoroutineScope(Dispatchers.Main + Job())
     private var positionSavingJob: Job? = null
+    private var positionUpdateJob: Job? = null
 
     private val _currentTrack = mutableStateOf<Track?>(null)
     val currentTrack: State<Track?> = _currentTrack
 
     private val _isPlaying = mutableStateOf(false)
     val isPlaying: State<Boolean> = _isPlaying
+
+    private val _currentPosition = mutableLongStateOf(0L)
+    val currentPosition: State<Long> = _currentPosition
+
+    private val _duration = mutableLongStateOf(0L)
+    val duration: State<Long> = _duration
+
+    private val _shuffleModeEnabled = mutableStateOf(false)
+    val shuffleModeEnabled: State<Boolean> = _shuffleModeEnabled
+
+    private val _repeatMode = mutableIntStateOf(Player.REPEAT_MODE_OFF)
+    val repeatMode: State<Int> = _repeatMode
 
     private var currentQueue = mutableListOf<Track>()
 
@@ -60,8 +75,10 @@ class PlayerManager(private val context: Context) {
                 _isPlaying.value = isPlaying
                 if (isPlaying) {
                     startPositionSaving()
+                    startPositionUpdates()
                 } else {
                     stopPositionSaving()
+                    stopPositionUpdates()
                     saveState()
                 }
             }
@@ -73,9 +90,30 @@ class PlayerManager(private val context: Context) {
                         updateCurrentTrackFromMediaItem(it)
                     }
                 }
+                updateDuration()
+                saveState()
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_READY) {
+                    updateDuration()
+                }
+            }
+
+            override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+                _shuffleModeEnabled.value = shuffleModeEnabled
+                saveState()
+            }
+
+            override fun onRepeatModeChanged(repeatMode: Int) {
+                _repeatMode.intValue = repeatMode
                 saveState()
             }
         })
+    }
+
+    private fun updateDuration() {
+        _duration.longValue = mediaController?.duration?.coerceAtLeast(0L) ?: 0L
     }
 
     private fun updateCurrentTrackFromMediaItem(mediaItem: MediaItem) {
@@ -84,7 +122,7 @@ class PlayerManager(private val context: Context) {
             id = mediaItem.mediaId.toLongOrNull() ?: 0L,
             title = metadata.title?.toString() ?: "Unknown",
             artist = metadata.artist?.toString() ?: "Unknown Artist",
-            duration = 0L,
+            duration = mediaController?.duration?.coerceAtLeast(0L) ?: 0L,
             uri = mediaItem.localConfiguration?.uri ?: Uri.EMPTY,
             albumArtUri = metadata.artworkUri
         )
@@ -95,6 +133,8 @@ class PlayerManager(private val context: Context) {
             val lastTrackId = persistenceManager.lastTrackId.first()
             val lastPosition = persistenceManager.lastPosition.first()
             val lastQueueIds = persistenceManager.lastQueue.first()
+            val savedShuffleMode = persistenceManager.shuffleModeEnabled.first()
+            val savedRepeatMode = persistenceManager.repeatMode.first()
 
             if (lastQueueIds.isNotEmpty()) {
                 val allTracks = repository.getAllTracks()
@@ -108,18 +148,16 @@ class PlayerManager(private val context: Context) {
                         currentQueue.indexOfFirst { it.id == lastTrackId }.coerceAtLeast(0)
                     } else 0
                     
+                    mediaController?.shuffleModeEnabled = savedShuffleMode
+                    mediaController?.repeatMode = savedRepeatMode
+                    
                     mediaController?.seekTo(trackIndex, lastPosition)
                     mediaController?.prepare()
                     
                     if (trackIndex < currentQueue.size) {
                         _currentTrack.value = currentQueue[trackIndex]
                     }
-                }
-            } else if (lastTrackId != null) {
-                repository.getTrackById(lastTrackId)?.let { track ->
-                    _currentTrack.value = track
-                    mediaController?.setMediaItem(createMediaItem(track), lastPosition)
-                    mediaController?.prepare()
+                    _currentPosition.longValue = lastPosition
                 }
             }
         }
@@ -162,9 +200,11 @@ class PlayerManager(private val context: Context) {
         val currentId = _currentTrack.value?.id
         val position = controller.currentPosition
         val queueIds = currentQueue.map { it.id }
+        val isShuffle = controller.shuffleModeEnabled
+        val repeat = controller.repeatMode
         
         scope.launch {
-            persistenceManager.savePlaybackState(currentId, position, queueIds)
+            persistenceManager.savePlaybackState(currentId, position, queueIds, isShuffle, repeat)
         }
     }
 
@@ -172,7 +212,7 @@ class PlayerManager(private val context: Context) {
         positionSavingJob?.cancel()
         positionSavingJob = scope.launch {
             while (true) {
-                delay(5000) // Сохраняем каждые 5 секунд
+                delay(5000)
                 saveState()
             }
         }
@@ -183,12 +223,46 @@ class PlayerManager(private val context: Context) {
         positionSavingJob = null
     }
 
+    private fun startPositionUpdates() {
+        positionUpdateJob?.cancel()
+        positionUpdateJob = scope.launch {
+            while (true) {
+                _currentPosition.longValue = mediaController?.currentPosition?.coerceAtLeast(0L) ?: 0L
+                delay(500)
+            }
+        }
+    }
+
+    private fun stopPositionUpdates() {
+        positionUpdateJob?.cancel()
+        positionUpdateJob = null
+    }
+
+    fun seekTo(position: Long) {
+        mediaController?.seekTo(position)
+        _currentPosition.longValue = position
+    }
+
     fun togglePlayPause() {
         val controller = mediaController ?: return
         if (controller.isPlaying) {
             controller.pause()
         } else {
             controller.play()
+        }
+    }
+
+    fun toggleShuffle() {
+        val controller = mediaController ?: return
+        controller.shuffleModeEnabled = !controller.shuffleModeEnabled
+    }
+
+    fun toggleRepeatMode() {
+        val controller = mediaController ?: return
+        controller.repeatMode = when (controller.repeatMode) {
+            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+            else -> Player.REPEAT_MODE_OFF
         }
     }
 
@@ -204,11 +278,13 @@ class PlayerManager(private val context: Context) {
         mediaController?.stop()
         _currentTrack.value = null
         stopPositionSaving()
+        stopPositionUpdates()
         saveState()
     }
 
     fun release() {
         stopPositionSaving()
+        stopPositionUpdates()
         saveState()
         controllerFuture?.let {
             MediaController.releaseFuture(it)
